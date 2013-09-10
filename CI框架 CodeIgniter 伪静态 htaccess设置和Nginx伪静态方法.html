@@ -1,0 +1,114 @@
+众所周知，LAMP代表Linux下Apache、MySQL、PHP这种网站服务器架构；而LNMP指的是Linux下Nginx、MySQL、PHP这种网站服务器架构。LNMP一键安装包可以从网上下载使用。
+
+Nginx（发音同 engine x）由 Igor Sysoev 用C语言为俄罗斯访问量第二的搜索引擎 Rambler.ru 站点开发，是一款轻量级的Web 服务器/反向代理服务器及电子邮件（IMAP/POP3/SMTP）代理服务器，其将源代码以类BSD许可证的形式发布，并在一个BSD-like 协议下发行。其特点是小巧高效，占有内存少，并发能力强，事实上Nginx的并发能力确实在同类型的网页服务器中表现较好。中国大陆使用Nginx网站用户有：新浪、网易、淘宝、腾讯等。Nginx第一个公开版本0.1.0发布于2004年10月4日。因它的稳定性、丰富的功能集、示例配置文件和低系统资源的消耗而闻名。2011年6月1日，Nginx 1.0.4发布。由此可以看出使用LNMP架构的好处。
+
+关于伪静态技术，最初是动态语言出现后为了解决用户访问的便利性和搜索蜘蛛的友好性。关于伪静态的组件有ISAPI_Rewrite、开源的IIRF等。但ISAPI_Rewrite Lite版只支持全局的httpd.conf的，不支持分布式的httpd.ini的，只有收费的Full版才支持分布式httpd.ini。现在我们知道，Nginx也能实现简单的伪静态。更多介绍伪静态可以参考
+
+CI在Apache、Nginx上运行需要.htaccess配置文件，在IIS服务器上则需要web.config文件，CI的伪静态我们可以通过.htaccess里面的规则设定
+
+RewriteEngine on  
+RewriteCond $1 !^(index\\.php|system\\.php|images|skin|js|ls|swfupload|attachment|application|robots\\.txt)  
+RewriteRule ^(.*)$ /fx/index.php/$1 [L]
+注： RewriteRule ^(.*)$ /webdir/index.php/$1 [L]里的webdir是你的CI程序目录 
+
+Nginx服务器伪静态设置首先需要设置nginx开启 path_info （LNMP默认已开启）
+，可以参考以下来自ZK的方法：
+
+假设我们的子目录名称为 zk
+        location /zk/ {
+        root   /var/www/html/;
+        index index.html index.htm index.php;
+        if ($request_filename !~* /giftbox/(javascript|css|images|style|upimg|artDialog|fckeditor|userfiles|crontab|robots\.txt|index\.php)) {
+        rewrite ^/(.*)$ /zk/index.php?$1 last;
+        }
+
+root 的目录路径为您的根目录路径 不需要更改。
+
+另外附上主目录伪静态规则
+
+        #rewrite ^/$ /index.php last;
+        #一下是防止某些文件夹被直接访问
+        #rewrite ^/(?!index\.php|images|robots\.txt|js|css|upimg|artDialog|style)(.*)$ /index.php/$1 last;
+
+
+首先需要设置nginx 开启 path_info （lnmp默认已经开启path_info）
+
+伪静态规则：
+
+if ($request_uri ~* ^/system)
+{
+ rewrite ^/(.*)$ /index.php?/$1 last;
+ break;
+}
+
+if (!-e $request_filename)
+{
+ rewrite ^/(.*)$ /index.php?/$1 last;
+ break;
+}
+
+
+在网上查到的资料很多人都说nginx目前不支持.htaccess文件来做伪静态，小子也觉得不应该，作为世界上轻量级最好用的WEB服务器，Nginx应该可以的，谷歌了一下，找到了nginx完全可以支持.htaccess文件的资料，其实linux下的文件是没有扩展名区别的，而针对nginx的伪静态配置文件更是没有名称的区别，只要指定相应路径即可，具体步骤请按如下操作：
+
+1、新建一个.htaccess文件，在里面输入规则，如：
+
+# nginx rewrite rule 
+rewrite ^(.*?)/article/.*?-(\d+)-(\d+)\.html$ $1/show.html?id=$2&page=$3 break; 
+rewrite ^(.*?)/category/.*?-(\d+)-(\d+)\.html$ $1/list.html?id=$2&page=$3 break; 
+rewrite ^(.*?)/tag/([^/]+)/?$ $1/tag.html?w=$2 break;  <span id="more-1758"></span>
+rewrite ^(.*?)/tag/([^/]+)/(\d+)$ $1/tag.html?w=$2&page=$3 break; 
+# end nginx rewrite rule 
+保存文件并上传到网站的根目录。
+
+2、修改虚拟主机配置
+
+# ee /usr/local/etc/nginx/nginx.conf #freebsd 7.2默认nginx默认安装的配置文件
+在你需要添加伪静态的虚拟机中的server块中引入.htaccess文件
+
+include /usr/www/.htaccess #请把这个改成你.htaccess文件的位置，
+保存、退出重启nginx
+
+# /usr/local/etc/rc.d/nginx restart
+刷新看看，如果能正常器从证明你的rewrite rule的语法是正确
+
+nginx的rewrite规则您可以直接放在主机配置中也可以放在独立的文件用includeinru，存为独立的文件时，保存到一个新的文件（文件名可以任意取，不过建议还是用.ht（注意有个“点”）开头的文件名，因为这个服务器里面默认过滤了外部对.ht开头的文件访问：
+
+location ~ /\.ht {
+deny all;
+}
+
+
+
+CI的htaccess配置
+
+
+最近突然想把链接中的index.php去掉，网上搜索了一把，发现解决方法很多，整理下。
+
+首先是两个基本修改点：
+
+1. 在httpd.conf中，将 所有 AllowOverride None  改为 AllowOverride All 好像共有三处吧，然后重启apache
+
+2. 将 config.php中的  $config['index_page'] = 'index.php';  改为 $config['index_page'] = '';
+
+然后根据具体配置：
+
+3.1 如果站点直接位于服务器根目录下，如/www/ 那如下配置就行：
+
+[java] view plaincopy
+RewriteEngine on  
+RewriteCond $1 !^(index\.php|robots|stafile|upload|\.txt)  
+RewriteRule ^(.*)$ /index.php/$1 [L]  
+
+
+3.2 如果设置了别名，则加上 RewriteBase /别名/
+
+3.3 如果位于根目录下的二级目录，则修改Rewrite Rule为：
+
+[java] view plaincopy
+RewriteEngine on  
+RewriteCond $1 !^(index\.php|robots|stafile|upload|\.txt)  
+RewriteRule ^(.*)$ /mysite/index.php/$1 [L]  
+
+
+最后，有个htaccess教程，可以详细了解下各个配置。
+http://www.javascriptkit.com/howto/htaccess.shtml
