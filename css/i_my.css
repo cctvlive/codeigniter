@@ -1,0 +1,7 @@
+/* CSS Document */
+body{ margin:0px; padding:0px; font-family:"微软雅黑", "宋体"; font-size:12px; background:#13181a;}
+*{ margin:0px;padding:0px;}
+a{text-decoration:none; cursor:pointer; color:#FFFFFF;bblr:bblr:expression(this.onFocus=this.close());outline-style:none;}
+img{ border:none; padding:0px; margin:0px;}
+* html,* html body /* 修正IE6振动bug */{background-image:url(about:blank);background-attachment:fixed;}
+
