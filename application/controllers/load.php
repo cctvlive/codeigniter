@@ -281,7 +281,7 @@ class load extends  SAE_Controller
                  'insrt'=>date('Y-m-d H:i:s ',mktime()),/*插入时间 */
                
                   'name'=>'腾讯会员','type'=>'2',/*类*/'group_id'=>'2'/*组*/);
-               if(empty($key_id)){echo "用户授权输出";}elseif( !empty($key_id)){echo "用户2次授权登陆输出";}
+               if(empty($username)){echo "用户授权输出";}elseif( !empty($username)){echo "用户2次授权登陆输出";}
              if(empty($username)){ $this->db->insert('user',$data); }elseif(!empty($username)){$name=$to_mysql['nickname'];$user=array('useradmin'=>$name);$this->db->where($user); $this->db->update('user',$data);}
              
              
