@@ -73,29 +73,34 @@ class load extends  SAE_Controller
             //print_r($user_message['user_message']);
             
         $to_mysql=$user_message['user_message'];
-           
+            //  print_r($to_mysql);die();
 				
             //print_r($user_message['user_message']);
 			$query=$this->db->get('user');
 			foreach($query->result() as $query){
-				$access_token_key=$query->access_token_key;
+                $access_token_key=$query->access_token_key;
+                //$name=$query->useradmin;
+                
+                $key_id=$query->key_id;
 			}
 			
-			
-			if( isset($_SESSION['token']['access_token']) && $_SESSION['token']['access_token']===$access_token_key/*(是用户的唯一值) 等于 (匹配数据库里的access_token_key字段里的值)*/)
+            if( isset($_SESSION['token']['access_token']) && $_SESSION['token']['access_token']==@$access_token_key/*(是用户的唯一值) 等于 (匹配数据库里的access_token_key字段里的值)*/)
+            //if(isset($to_mysql['id']) && $to_mysql['id']==$key_id/*(是用户的唯一值) 等于 (匹配数据库里的access_token_key字段里的值)*/)
 			{
 			/*,就输出成功/跳转到指定页面(个人信息页面或者是 想让授权者到的第一页面)*/
-				$select=array( 'access_token_key'=> $_SESSION['token']['access_token']);
+                $select=array( 'access_token_key'=> $_SESSION['token']['access_token']);
+                // $select=array( 'key_id'=> $to_mysql['id']);
 				$user_message['user_message']=$this->db->get_where('user',$select);
                 //print_r($user_message['user_message']);
                 //  foreach($user_message['user_message']->result() as $user_message){
                 //print_r($user_message);
                 
                 // }
-                 echo "用户匹配输出";
+                 echo "用户session匹配输出";
 				$this->load->view('load/i_my',$user_message);
 			}
 			else{
+               $key=$to_mysql['id'];
                 
             if($to_mysql['gender']==='m'){$to_mysql['gender_demo']='男';} elseif($to_mysql['gender']==='f'){$to_mysql['gender_demo']='女';}elseif($to_mysql['gender']==='n'){$to_mysql['gender_demo']='未知';}
 				$data=array(
@@ -103,15 +108,16 @@ class load extends  SAE_Controller
 				'u_img'=>$to_mysql['profile_image_url'],/*完整的头像地址*/
 				'gender'=>$to_mysql['gender'],/* 性别,m--男，f--女,n--未知 */
                 'gender_demo'=>$to_mysql['gender_demo'],/* 性别,m--男，f--女,n--未知 */
-                
+                'key_id'=>$key,/*新浪key_id登陆使用的id号*/
+                    // 'passwd'=>$key,/*密码为空,可以用key_id匹配passwrod*/
 				'insrt'=>date('Y-m-d H:i:s ',mktime()),/*插入时间 */
 				'access_token_key'=>$_SESSION['token']['access_token'],/*新浪key*/
                      'name'=>'新浪会员',
                     'type'=>'3',/*类*/
                     'group_id'=>'3'/*组*/
 				);
-				 echo "用户授权输出";
-				$this->db->insert('user',$data);
+                if(empty($key_id)){echo "用户授权输出";}elseif( !empty($key_id)){echo "用户2次授权登陆输出";}
+                if(empty($key_id)){ $this->db->insert('user',$data);}elseif( !empty($key_id)){$name=$to_mysql['id'];$user=array('key_id'=>$key_id);$this->db->where($user); $this->db->update('user',$data);}
 				if($this->db->affected_rows()>0){
 					$select=array( 'access_token_key'=> $_SESSION['token']['access_token']);
 					$user_message['user_message']=$this->db->get_where('user',$select);
@@ -120,6 +126,7 @@ class load extends  SAE_Controller
 				}else {
                     $this->load->view('load/index');
 				}
+                
 				//注册新的用户信息并绑定微博*/
 				/*
 				 * 将$c->show_user_by_id( $uid);查询出来的微博信息 和 
@@ -207,7 +214,7 @@ class load extends  SAE_Controller
 		//获取用户基本资料
 
          $data['qq'] = $this->qqclass->get_user_info($access_token, $this->config->item("qq_appid"), $open_id);//QQ空间
-        //$data['data'] = $this->qqclass->get_info($access_token, $this->config->item("qq_appid"), $open_id);//微博
+        // $data['data'] = $this->qqclass->get_info($access_token, $this->config->item("qq_appid"), $open_id);//微博
         // print_r($data['qq']);die(); //全部数据
         //print_r($data['data']); //全部数据
         //echo '<br />';
@@ -216,13 +223,21 @@ class load extends  SAE_Controller
         //   print_r($data['data']['data']);//用户数据
         //  $to_mysql=$data['data']['data'];
          $to_mysql=$data['qq'];
-        // print_r($to_mysql);
+        //  print_r($to_mysql);
         $query=$this->db->get('user');
         foreach($query->result() as $query){
         		$username=$query->useradmin;
             //print_r($username);
             // print_r($query->useradmin);
         	}
+        
+        
+        // if($to_mysql['gender']=='男';){$to_mysql['gender_demo']='m'}
+        // if($to_mysql['gender']=='女';){$to_mysql['gender_demo']='f'}
+        // if($to_mysql['gender']=='未知';){$to_mysql['gender_demo']='n'}
+        
+        
+        
         // print_r($to_mysql['nickname']);
         //  /$_SESSION=array('head'=>$data['data']['head'] ,'nick'=>$data['data']['nick'],'data'=>$data['data']['data']);
          if( isset($username) && $username===$to_mysql['nickname']/*(是用户的唯一值) 等于 (匹配数据库里的openid字段里的值)*/)
@@ -236,7 +251,7 @@ class load extends  SAE_Controller
                  // print_r($user_message->u_img);
                  // print_r($user_message->gender_demo);
                  // print_r($user_message->name);
-                 echo "用户匹配输出";
+                 echo "用户名匹配输出";
                  $user_data['data']=array('username'=>$user_message->useradmin,
                                   'u_img'=>$user_message->u_img,
                                   'gender_demo'=>$user_message->gender_demo,
@@ -253,9 +268,7 @@ class load extends  SAE_Controller
                // print_r($to_mysql['openid']);
                                                            
          
-               // if($to_mysql['gender']=='男';){$to_mysql['sex']='m'}
-               //if($to_mysql['gender']=='女';){$to_mysql['sex']='f'}
-               //if($to_mysql['gender']=='未知';){$to_mysql['sex']='n'}
+               
                //$to_mysql['https_head']=$to_mysql['https_head'].'/100';	
                // print_r($to_mysql['https_head']);
                // print_r($to_mysql['gender']);
@@ -263,15 +276,16 @@ class load extends  SAE_Controller
                 $data=array(
                 'useradmin'=>$to_mysql['nickname'],/*名称*/
                  'u_img'=>$to_mysql['figureurl_qq_2'],/*完整的qq头像地址*/
-                    // 'gender'=>$to_mysql['sex'],/* 性别,m--男，f--女,n--未知 */
+                    //'gender'=>$to_mysql['gender_demo'],/* 性别,m--男，f--女,n--未知 */
                  'gender_demo'=>$to_mysql['gender'],/* 性别,m--男，f--女,n--未知 */
                  'insrt'=>date('Y-m-d H:i:s ',mktime()),/*插入时间 */
                
                   'name'=>'腾讯会员','type'=>'2',/*类*/'group_id'=>'2'/*组*/);
-               
-                                                         $this->db->insert('user',$data);
-                                                          if($this->db->affected_rows()>0){
-                    		$select=array( 'useradmin'=> $to_mysql['nickname']);
+               if(empty($key_id)){echo "用户授权输出";}elseif( !empty($key_id)){echo "用户2次授权登陆输出";}
+             if(empty($username)){ $this->db->insert('user',$data); }elseif(!empty($username)){$name=$to_mysql['nickname'];$user=array('useradmin'=>$name);$this->db->where($user); $this->db->update('user',$data);}
+             
+             
+              if($this->db->affected_rows()>0){$select=array( 'useradmin'=> $to_mysql['nickname']);
               $user_message['user_message']=$this->db->get_where('user',$select);
                   // print_r($user_message['user_message']);
              foreach($user_message['user_message']->result() as $user_message){
@@ -279,7 +293,7 @@ class load extends  SAE_Controller
                  //print_r($user_message->u_img);
                  // print_r($user_message->gender_demo);
                  // print_r($user_message->name);
-                 echo "用户授权输出";
+                //echo "用户授权输出";
                  $user_data['data']=array('username'=>$user_message->useradmin,
                                   'u_img'=>$user_message->u_img,
                                   'gender_demo'=>$user_message->gender_demo,
@@ -287,6 +301,7 @@ class load extends  SAE_Controller
                                  );
                  
               }
+                                                              
              $this->load->view('load/i_my',$user_data);
                  }else {
                 $this->load->view('load/index');
@@ -308,4 +323,3 @@ class load extends  SAE_Controller
         
                           // $this->load->view('load/i_my',$data);
 	}
-    
